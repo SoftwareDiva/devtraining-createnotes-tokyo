@@ -37,11 +37,57 @@
 		c.data.notes.splice(c.notePos, 1);
 	});
 	
+	// Record removed from data object on the client and passed to server
+  c.snNoteUpdate = function(name,sysID){
+
+    for (var i=0;i<c.data.notes.length;i++){
+      if(c.data.notes[i].sys_id == name.data.sys_id){
+        if(name.data.record.note){
+          c.data.notes[i].note = name.data.record.note.display_value;
+        }
+        if(name.data.record.title){
+          c.data.notes[i].title = name.data.record.title.display_value;
+        }
+        c.server.update();
+
+      }
+    }
+  }
+
+  // Record removed from data object on the server and passed back to client
+  c.snNoteDelete = function(sysID){
+
+    c.server.get({
+      action: 'snDeleteNote',
+      noteID: sysID
+
+    }).then(function(r){
+      c.data.notes = r.data.notes;
+    });
+
+  }
+	
 	// Add the Record Watcher (and config the RW parameters) to the Notes List Widget - Client Script
+	// table_name: Name of the Create Notes table
+	// filter: Records with any value in the Number field (Hint: Use the Filter Builder in the CreateNotes > Notes list to determine the query syntax.)
 	// 03/20/24 TJ
 	spUtil.recordWatch($scope, "x_snc_createsnotes_note", "numberANYTHING", function(name) {
 		console.log(name.data.operation); 
-		console.log(name); 
+		console.log(name);
+		// Calls a Client Script function to do the update and pass the updated data object
+  // to the server.
+  if(name.data.operation == "update"){
+    c.snNoteUpdate(name, name.data.sys_id);
+  }
+  // Calls a Client Script function which deletes a record on the server and passes
+  // the updated data object back to the client.
+  if(name.data.operation == "delete"){
+    c.snNoteDelete(name.data.sys_id);
+  }
+		// Fast and easy... replace the client data object with the server data object
+  if(name.data.operation == "insert"){
+    c.server.refresh();
+  }
 	});
 }
 ]]></client_script>
@@ -91,6 +137,18 @@
 			$sp.getRecordValues(data.newNote,newNote,"title,note,sys_id");
 
 		}
+		
+		// Add the Server Script logic for the record deletion event.
+		if (input.action == 'snDeleteNote') {
+			var delNote = new GlideRecord('x_snc_createnotes_note');
+			// The notes record should already be gone.  Just
+			// making sure it no longer exists.
+			if(delNote.get(input.noteID)){
+				delNote.deleteRecord();
+			}
+
+    }
+		
 	}
 }
 )();]]></script>
@@ -99,14 +157,14 @@
         <sys_created_by>admin</sys_created_by>
         <sys_created_on>2019-05-30 18:13:04</sys_created_on>
         <sys_id>06948fa8db3133000613a08a4896194c</sys_id>
-        <sys_mod_count>15</sys_mod_count>
+        <sys_mod_count>20</sys_mod_count>
         <sys_name>Notes List</sys_name>
         <sys_package display_value="CreateNotes" source="x_snc_createnotes">df5fd9a5090232007f44e1046c8ff69f</sys_package>
         <sys_policy/>
         <sys_scope display_value="CreateNotes">df5fd9a5090232007f44e1046c8ff69f</sys_scope>
         <sys_update_name>sp_widget_06948fa8db3133000613a08a4896194c</sys_update_name>
         <sys_updated_by>admin</sys_updated_by>
-        <sys_updated_on>2024-03-20 19:09:17</sys_updated_on>
+        <sys_updated_on>2024-03-21 15:32:44</sys_updated_on>
         <template><![CDATA[<div class="panel panel-default">
   <div class="panel-heading clearfix">
     <h3 class="panel-title pull-left">
